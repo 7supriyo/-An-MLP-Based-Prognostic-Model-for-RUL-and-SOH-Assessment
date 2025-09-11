@@ -1,0 +1,105 @@
+disp('Loading dataset...');
+ load('Oxford_Battery_Degradation_Dataset_1.mat');
+ disp('Dataset loaded successfully.');
+ % --- Data Consolidation --
+disp('Consolidating cell data into a single structure...');
+ data = struct();
+ for i = 1:8
+    variable_name = ['Cell' num2str(i)];
+    data.(variable_name) = eval(variable_name);
+ end
+ disp('Data consolidated.');
+cell_names = fieldnames(data);
+ nominal_capacity = 740; % mAh
+ colors = lines(numel(cell_names));
+ disp('Extracting degradation metrics for plotting...');
+ all_cells_data = {};
+ for i = 1:numel(cell_names)
+cell_id = cell_names{i};
+    cycle_names = fieldnames(data.(cell_id));
+    cycle_numbers = [];
+    soh_values = [];
+    ir_values = [];
+ for j = 1:numel(cycle_names)
+        cycle_id = cycle_names{j};
+ try
+            discharge_data = data.(cell_id).(cycle_id).C1dc;
+ % FIX 1: Calculate capacity using the absolute value of the 
+negative charge.
+ % The total capacity is the maximum amount of charge delivered.
+            capacity = max(abs(discharge_data.q));
+            soh = capacity / nominal_capacity;
+            ocv_discharge = data.(cell_id).(cycle_id).OCVdc;
+            delta_V = ocv_discharge.v(1) - ocv_discharge.v(10);
+ % FIX 2: Use current in Amperes (0.040 A) instead of Milliamps 
+(40 mA)
+ % to get the resistance in correct Ohms (Ω).
+            current_in_amps = 0.040;
+            internal_resistance = abs(delta_V / current_in_amps);
+ if ~isnan(internal_resistance) && ~isinf(internal_resistance)
+                cycle_numbers = [cycle_numbers; sscanf(cycle_id, 'cyc%d')];
+                soh_values = [soh_values; soh];
+                ir_values = [ir_values; internal_resistance];
+ end
+ catch
+ continue;
+ end
+ end
+    all_cells_data{i}.cycle_numbers = cycle_numbers;
+    all_cells_data{i}.soh_values = soh_values;
+    all_cells_data{i}.ir_values = ir_values;
+ end
+ disp('Extraction complete.');
+disp('Generating Plot 1: SOH Fade...');
+ figure('Name', 'SOH Fade Across All Cells', 'Position', [100, 100, 800, 
+600]);
+ hold on;
+ for i = 1:numel(cell_names)
+    plot(all_cells_data{i}.cycle_numbers, all_cells_data{i}.soh_values *100, ...
+ 'o-', 'Color', colors(i,:), 'LineWidth', 1.5, 'DisplayName', ['Cell 
+' num2str(i)]);
+ end
+ hold off;
+ grid on;
+ title('State of Health (SOH) Degradation Over Cycles');
+ xlabel('Cycle Number');
+ ylabel('State of Health (%)');
+ ylim([60 105]);
+ legend('show', 'Location', 'southwest');
+disp('Generating Plot 2: Discharge Curve Evolution...');
+ figure('Name', 'Discharge Curve Evolution', 'Position', [150, 150, 800, 
+600]);
+ cell_to_plot = 'Cell5';
+ cycles_to_plot = {'cyc0100', 'cyc0800', 'cyc1600'};
+hold on;
+ for i = 1:length(cycles_to_plot)
+    cycle_id = cycles_to_plot{i};
+    v = data.(cell_to_plot).(cycle_id).C1dc.v;
+    q = data.(cell_to_plot).(cycle_id).C1dc.q;
+ % FIX 3 (Optional but recommended): Plot the absolute value of capacity 
+for intuitive visualization.
+    plot(abs(q), v, 'LineWidth', 2, 'DisplayName', ['Cycle ' 
+cycle_id(4:end)]);
+ end
+ hold off;
+ grid on;
+ title(['Evolution of Discharge Curve for ', cell_to_plot]);
+ xlabel('Discharge Capacity (mAh)');
+ ylabel('Voltage (V)');
+ legend('show', 'Location', 'southwest');
+disp('Generating Plot 3: Internal Resistance Increase...');
+ figure('Name', 'Internal Resistance Increase', 'Position', [200, 200, 800, 
+600]);
+ hold on;
+ for i = 1:numel(cell_names)
+    plot(all_cells_data{i}.cycle_numbers, all_cells_data{i}.ir_values, ...
+ 's--', 'Color', colors(i,:), 'LineWidth', 1.5, 'DisplayName', ['Cell 
+' num2str(i)]);
+ end
+ hold off;
+ grid on;
+ title('Internal Resistance Increase Over Cycles');
+ xlabel('Cycle Number');
+ ylabel('Approx. Internal Resistance (\Omega)'); % Label is now correct
+ legend('show', 'Location', 'northwest');
+ disp('Part 1 Complete: All visualizations generated.');
