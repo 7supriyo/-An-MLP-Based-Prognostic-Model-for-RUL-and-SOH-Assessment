@@ -190,6 +190,10 @@ The framework culminates in an automated Decision Support Report, delivering act
 - **Network Architecture:** Two hidden layers (20, 10 neurons).
 - **Training:** Levenberg-Marquardt backpropagation, robust normalization.
 - **Performance:** RMSE of 1.18%, R-value of 0.98 on test data.
+- <img width="786" height="680" alt="image" src="https://github.com/user-attachments/assets/48c4839f-f2a8-4576-ae80-f24925cf9086" />
+<img width="782" height="416" alt="image" src="https://github.com/user-attachments/assets/d3e81648-f169-4b56-ab8b-a1ff1b7f25bf" />
+
+
 
 ### 4. Automated Report Generation
 
